@@ -75,15 +75,15 @@ public class TimeLine extends PFrame{
 	static int yearFactor = 120;
 	static Random rand = new Random();
 	static PPath path;
-	static enum viewLevel{DAY, WEEK, MONTH, QUARTER, YEAR}
-	static enum sortModes{AUTHOR, DATE}
+	static enum viewLevel{DAY, WEEK, MONTH, QUARTER, YEAR, NONE}
+	static enum sortModes{AUTHOR, DATE, NONE}
 	static int[] dayPositionArray;
 	static int[] weekPositionArray;
 	static int[] monthPositionArray;
 	static int [] yearPositionArray;
 	static ArrayList<ChangeEntry> listData;
 	static GregorianCalendar gCalendar;
-	static viewLevel view = viewLevel.YEAR;
+	static viewLevel view = viewLevel.NONE;
 	static sortModes sortMode = sortModes.DATE;
 	static PText groupByDay, groupByWeek, groupByMonth, groupByYear;
 	static PText sortByAuthor, sortByDate;
@@ -118,7 +118,7 @@ public class TimeLine extends PFrame{
 		
 		// Set up camera to use default zoom handler
 		camera = canvas.getCamera();
-		camera.setViewConstraint(1);
+		camera.setViewConstraint(PCamera.VIEW_CONSTRAINT_ALL);
 		
 //		canvas.getZoomEventHandler().setMaxScale(MAXZOOMSCALE);
 //		canvas.getZoomEventHandler().setMinScale(MINZOOMSCALE);
@@ -162,12 +162,9 @@ public class TimeLine extends PFrame{
 			}
 		});
 
-
-
 		dateText = new PText(""+camera.getViewBounds());
 		dateText.setPaint(new Color(200,200,200));
 		dateText.setBounds(500, 500, 250, 250);
-		
 
 		//******************************************************************
 		// Set up dayViewLevel, monthViewLevel, yearViewLevel nodes.
@@ -352,7 +349,6 @@ public class TimeLine extends PFrame{
 
 		gCalendar = new GregorianCalendar();
 
-
 		//**Create the timeGrid**//
 		TimeLineGrid tGrid = new TimeLineGrid(2009, 2011);
 		tGrid.setBounds(0,0,10,10);
@@ -360,8 +356,6 @@ public class TimeLine extends PFrame{
 
 		String QUOTE =
 			"Everyone generalizes from one example. \nAt least, I do. -- Vlad Taltos (Issola, Steven Brust)";
-
-
 
 		final PText text = new PText(QUOTE);
 		text.setConstrainWidthToTextWidth(false);
@@ -378,7 +372,6 @@ public class TimeLine extends PFrame{
 //		FontMetrics fm = new FontMetrics(text.getFont());
 //		System.out.println(text.getFont().getSize2D());
 		
-
 		getCanvas().getLayer().addChild(path);
 		cNode = new CalendarNode();
 
@@ -436,7 +429,7 @@ public class TimeLine extends PFrame{
 				//text.scale(0.2);
 //				System.out.println(""+text.getFont());
 //				System.out.println(camera.getViewScale());
-				if (camera.getViewScale()>20){
+				if (camera.getViewScale()>10){
 					if (!displayContent){
 						displayContent = true;
 						cNode.layoutChildren(view, sortMode);
@@ -460,9 +453,6 @@ public class TimeLine extends PFrame{
 			}
 
 		});
-
-
-
 
 		canvas.addInputEventListener(new PBasicInputEventHandler() {
 			public void mouseClicked(PInputEvent event){
@@ -572,23 +562,18 @@ public class TimeLine extends PFrame{
 				}
 			}
 			
-//**		// Calculate week view position
+			//** Calculate week view position **//
 			entry.weekViewPosition = (entry.dayViewPosition-4)/7;
-//			System.out.println(entry.weekViewPosition);
-
-			//			System.out.printf("%d %d %d\n", entry.year, entry.month, entry.day);
-			entry.setBounds(0, 0, DEFAULT_ENTRY_BOX_SIZE, DEFAULT_ENTRY_BOX_SIZE);
-			//			entry.offset(pos*dayWidth, 50 + (DEFAULT_ENTRY_BOX_SIZE+1)*(dayPositionArray[pos]++));
-
-			entry.offset(xOffset - entry.getX(), yOffset);
-			//			entry.animateTransformToBounds(xOffset - entry.getX(), yOffset, entry.getWidth(), entry.getHeight(), 10*(++count));
-			xOffset += entry.getFullBoundsReference().getWidth();
-			//			entry.animateToBounds((double) pos*dayWidth, (double) (50 + (DEFAULT_ENTRY_BOX_SIZE+1)*(dayPositionArray[pos]++)), (double) DEFAULT_ENTRY_BOX_SIZE, (double) DEFAULT_ENTRY_BOX_SIZE, 300);
-			//			entry.addContent(QUOTE);
+			
+			//** Set entry's bound and add to the calendar node **//
+			//entry.setBounds(0, 0, DEFAULT_ENTRY_BOX_SIZE, DEFAULT_ENTRY_BOX_SIZE);
+			//entry.offset(xOffset - entry.getX(), yOffset);
+			//xOffset += entry.getFullBoundsReference().getWidth();
 
 			cNode.addChild(entry);
 		}
 
+		cNode.layoutChildren(viewLevel.DAY, sortModes.DATE);
 		layer.addChild(cNode);
 
 		//new PStickyHandleManager(getCanvas().getCamera(), n3);
@@ -597,6 +582,7 @@ public class TimeLine extends PFrame{
 		//getCanvas().removeInputEventListener(getCanvas().getPanEventHandler());
 		//getCanvas().addInputEventListener(new PNavigationEventHandler());
 	}
+	
 
 	//***********************************************************************************
 	// 
@@ -636,7 +622,6 @@ public class TimeLine extends PFrame{
 			content.setHeight(10);
 
 			content.setHorizontalAlignment(Component.CENTER_ALIGNMENT);
-			//content.setPaint(new Color(199,200,205));
 			content.setTextPaint(new Color(100,100,150));
 			this.addChild(content);
 			
@@ -644,11 +629,16 @@ public class TimeLine extends PFrame{
 			
 			content.setText(author);
 			this.setStrokePaint(TimeLineMain.authorMap.get(author));
+			//this.setPaint(TimeLineMain.authorMap.get(author));
 
 		}
 
 		public void addContent(String cont){
 			content.setText(content.getText().concat("\n"+cont));
+		}
+		
+		public String getEntryContent(){
+			return content.getText();
 		}
 
 		@Override
@@ -710,19 +700,19 @@ public class TimeLine extends PFrame{
 
 				
 				if (view.equals(viewLevel.DAY)){
-					entry.animateTransformToBounds((double) entry.dayViewPosition*dayWidth, (double) (50 + (DEFAULT_ENTRY_BOX_SIZE+1)*(dayPositionArray[entry.dayViewPosition]++)),DEFAULT_ENTRY_BOX_SIZE, DEFAULT_ENTRY_BOX_SIZE, animationTime);
+					entry.animateTransformToBounds((double) entry.dayViewPosition*dayWidth, (double) (100 + (DEFAULT_ENTRY_BOX_SIZE+1)*(dayPositionArray[entry.dayViewPosition]++)),DEFAULT_ENTRY_BOX_SIZE, DEFAULT_ENTRY_BOX_SIZE, animationTime);
 					entry.getChild(0).setVisible(displayContent);
 				}
 				else if (view.equals(viewLevel.WEEK)){
-					entry.animateTransformToBounds((double) (entry.dayViewPosition-entry.week+3)*dayWidth, (double) (50 + (DEFAULT_ENTRY_BOX_SIZE+1)*(weekPositionArray[entry.weekViewPosition]++)), 3*DEFAULT_ENTRY_BOX_SIZE, DEFAULT_ENTRY_BOX_SIZE, animationTime);
+					entry.animateTransformToBounds((double) (entry.dayViewPosition-entry.week+3)*dayWidth, (double) (100 + (DEFAULT_ENTRY_BOX_SIZE+1)*(weekPositionArray[entry.weekViewPosition]++)), 3*DEFAULT_ENTRY_BOX_SIZE, DEFAULT_ENTRY_BOX_SIZE, animationTime);
 					entry.getChild(0).setVisible(false);
 				}
 				else if (view.equals(viewLevel.MONTH)){
-					entry.animateTransformToBounds((double) entry.monthViewPosition*dayWidth, (double) (50 + (DEFAULT_ENTRY_BOX_SIZE+1)*(monthPositionArray[12*(entry.year-2009) + entry.month]++)), monthFactor*DEFAULT_ENTRY_BOX_SIZE, DEFAULT_ENTRY_BOX_SIZE, animationTime);
+					entry.animateTransformToBounds((double) entry.monthViewPosition*dayWidth, (double) (100 + (DEFAULT_ENTRY_BOX_SIZE+1)*(monthPositionArray[12*(entry.year-2009) + entry.month]++)), monthFactor*DEFAULT_ENTRY_BOX_SIZE, DEFAULT_ENTRY_BOX_SIZE, animationTime);
 					entry.getChild(0).setVisible(false);
 				}
 				else if (view.equals(viewLevel.YEAR)){
-					entry.animateTransformToBounds((double) entry.yearViewPosition*dayWidth, (double) (50 + (DEFAULT_ENTRY_BOX_SIZE+1)*(yearPositionArray[entry.year-2009]++)), yearFactor*DEFAULT_ENTRY_BOX_SIZE, DEFAULT_ENTRY_BOX_SIZE, animationTime);
+					entry.animateTransformToBounds((double) entry.yearViewPosition*dayWidth, (double) (100 + (DEFAULT_ENTRY_BOX_SIZE+1)*(yearPositionArray[entry.year-2009]++)), yearFactor*DEFAULT_ENTRY_BOX_SIZE, DEFAULT_ENTRY_BOX_SIZE, animationTime);
 					entry.getChild(0).setVisible(false);
 				}
 			}
@@ -758,11 +748,11 @@ public class TimeLine extends PFrame{
 				else
 					numOfDays += 365;
 			}
-
+			
 			// Draw grid line
 			g2.setPaint(Color.BLACK);
-			g2.drawLine(0, 30, dayWidth*numOfDays, 30);
-			this.setBounds(0,0, numOfDays*dayWidth, 30);
+			g2.drawLine(0, 30, dayWidth*numOfDays, 50);
+			this.setBounds(0,0, numOfDays*dayWidth, 50);
 
 			int tickPos = 0;
 
@@ -789,7 +779,6 @@ public class TimeLine extends PFrame{
 				for (int m = 0; m < 12; m++){
 					g2.drawLine(tickPos*dayWidth, 30, tickPos*dayWidth, 45);
 					if (m == 0 || m == 2 || m == 4 || m == 6 || m == 7 || m == 9 || m == 11){
-
 						tickPos += 31;
 					}
 					else if (m == 1){
@@ -797,15 +786,12 @@ public class TimeLine extends PFrame{
 							tickPos += 29;
 						else
 							tickPos += 28;
-
 					}
 					else {
 						tickPos += 30;
 					}
 				}
 			}
-
-			// Draw quarter ticks
 
 			tickPos = 0;
 
@@ -826,9 +812,9 @@ public class TimeLine extends PFrame{
 			g2.setPaint(Color.BLACK);
 			java.awt.FontMetrics fm = g2.getFontMetrics();
 			int labelPos = 180;
-			g2.setFont(new Font("Serif", Font.PLAIN, (int) (24/camera.getViewScale())));
+			g2.setFont(new Font("Serif", Font.PLAIN, Math.max(24,(int) (24/camera.getViewScale()))));
 			for (int y = sYear; y <= eYear; y++){
-				g2.drawString(y+"", dayWidth * labelPos - fm.stringWidth(y+"")/2, 0);
+				g2.drawString(y+"", dayWidth * labelPos - fm.stringWidth(y+"")/2, 10);
 
 				if (gCalendar.isLeapYear(y))
 					labelPos += 366;
@@ -837,7 +823,7 @@ public class TimeLine extends PFrame{
 			}
 
 			// Draw month labels	
-			g2.setFont(new Font("Serif", Font.PLAIN, dayWidth*3));
+			g2.setFont(new Font("Serif", Font.PLAIN, dayWidth*4));
 			g2.setPaint(Color.GRAY);
 
 			labelPos = 15;
@@ -847,12 +833,12 @@ public class TimeLine extends PFrame{
 					switch (m) {
 					case 0:
 						monthString = "January";
-						g2.drawString(monthString, dayWidth * labelPos - fm.stringWidth(monthString)/2, 10);
+						g2.drawString(monthString, dayWidth * labelPos - g2.getFont().getSize()/2, 20);
 						labelPos += 30;
 						break;
 					case 1:
 						monthString = "February";
-						g2.drawString(monthString, dayWidth * labelPos - fm.stringWidth(monthString)/2, 10);
+						g2.drawString(monthString, dayWidth * labelPos - fm.stringWidth(monthString)/2, 20);
 						if (gCalendar.isLeapYear(y))
 							labelPos += 30;
 						else
