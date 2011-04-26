@@ -1,3 +1,4 @@
 TraceTimeLine is a Java tool developed with the goal of displaying the log history of a project under development. 
 Using a zoom-able interface, the tool aims to provide a more robust environment for developers to get an overview of the development of a project under different view levels and sort modes.
 The tool is implemented on the Piccolo2D framework which can be found at:
+http://www.piccolo2d.org/
